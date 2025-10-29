@@ -3,7 +3,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Licença MIT"/>
   <img src="https://img.shields.io/badge/status-concluído-brightgreen" alt="Status: Concluído"/>
-  <img src="https://img.shields.io/github/last-commit/thiago-pereira79/detona-ralph?color=blue&label=último%20commit" alt="Último Commit"/>
   <img src="https://img.shields.io/badge/feito%20com-HTML%20%26%20CSS%20%26%20JS-orange" alt="Feito com HTML, CSS e JS"/>
 </p>
 
