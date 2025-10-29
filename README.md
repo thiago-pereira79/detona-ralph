@@ -1,4 +1,4 @@
-# 🕹️ Detona Ralph - Mini Game
+# 🕹️ Detona Ralph
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Licença MIT"/>
