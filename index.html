@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detona Ralph</title>
+
+  <!-- Fonte retrô -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="./src/styles/reset.css" />
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- TOPO / HUD -->
+    <div class="menu">
+      <div class="menu-block">
+        <h2 class="menu-label">Tempo</h2>
+        <h2 id="time-left">60</h2>
+      </div>
+
+      <div class="menu-block">
+        <h2 class="menu-label">Pontuação</h2>
+        <h2 id="score">0</h2>
+      </div>
+
+      <div class="menu-block lives">
+        <div class="lives-row">
+          <img src="./src/imagens/player.png" height="36" alt="vidas" />
+          <h2 id="lives">x5</h2>
+        </div>
+        <h2 class="menu-label">Vidas</h2>
+      </div>
+
+      <div class="menu-block">
+        <h2 class="menu-label">Recorde</h2>
+        <h2 id="best">0</h2>
+      </div>
+
+      <!-- Badge TURBO (aparece quando o modo turbo está ligado) -->
+      <div id="turbo-badge" class="badge hidden">TURBO</div>
+    </div>
+
+    <!-- TABULEIRO: 3 × 3 -->
+    <div class="panel">
+      <div class="panel-row">
+        <div class="square" id="1"></div>
+        <div class="square" id="2"></div>
+        <div class="square" id="3"></div>
+      </div>
+      <div class="panel-row">
+        <div class="square enemy" id="4"></div>
+        <div class="square" id="5"></div>
+        <div class="square" id="6"></div>
+      </div>
+      <div class="panel-row">
+        <div class="square" id="7"></div>
+        <div class="square" id="8"></div>
+        <div class="square" id="9"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÁUDIOS PRÉ-CARREGADOS -->
+  <audio id="sfx-hit"   src="./src/audio/hit.mp3.mp3"   preload="auto"></audio>
+  <audio id="sfx-erro"  src="./src/audio/erro.wav"  preload="auto"></audio>
+  <audio id="sfx-tempo" src="./src/audio/mixkit-game-level-completed-2059.wav" preload="auto"></audio>
+
+  <!-- CAPA / TELA INICIAL -->
+  <section id="overlay-start" class="overlay">
+    <div class="card">
+      <h1>Detona Ralph</h1>
+      <p>Acerte o Ralph o máximo que puder!</p>
+      <p class="rec">🏁 Recorde da sessão: <span id="recorde-capa">0</span></p>
+
+      <!-- TOGGLE DO MODO TURBO -->
+      <label class="toggle">
+        <input type="checkbox" id="chk-turbo" />
+        <span>Modo Turbo (fica mais rápido a cada acerto)</span>
+      </label>
+
+      <button id="btn-iniciar" class="btn">Iniciar Jogo</button>
+    </div>
+  </section>
+
+  <!-- FIM DE JOGO -->
+  <section id="overlay-gameover" class="overlay hidden">
+    <div class="card">
+      <h2>Fim de jogo</h2>
+      <p>Pontuação: <b id="pontuacao-final">0</b></p>
+      <p class="rec">🏁 Recorde da sessão: <b id="recorde-final">0</b></p>
+      <div class="row">
+        <button id="btn-reiniciar" class="btn">Jogar novamente</button>
+        <button id="btn-compartilhar" class="btn secondary">Compartilhar</button>
+      </div>
+    </div>
+  </section>
+
+  <script defer src="./src/scripts/engine.js"></script>
+</body>
+</html>
