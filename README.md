@@ -1,50 +1,46 @@
-# 🎮 Detona Ralph - Mini Game em JavaScript
+# 🕹️ Detona Ralph - Mini Game
 
-![License](https://img.shields.io/badge/license-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/status-concluído-green.svg)
-![Último Commit](https://img.shields.io/github/last-commit/thiago-pereira79/detona-ralph?color=blue)
-![Feito com](https://img.shields.io/badge/feito%20com-HTML%20%7C%20CSS%20%7C%20JavaScript-orange)
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Licença MIT"/>
+  <img src="https://img.shields.io/badge/status-concluído-brightgreen" alt="Status: Concluído"/>
+  <img src="https://img.shields.io/github/last-commit/thiago-pereira79/PodGenAI?color=blue&label=ultimo%20commit" alt="Ultimo Commit"/>
+  <img src="https://img.shields.io/badge/feito%20com-HTML%2C%20CSS%20%26%20JavaScript-orange" alt="Feito com HTML, CSS e JavaScript"/>
+</p>
 
 ---
 
-## 💡 Sobre o projeto
-Jogo desenvolvido como parte dos estudos de lógica e manipulação do DOM com **JavaScript**,  
-inspirado no clássico *Whac-A-Mole*. O objetivo é simples: acertar o Ralph o máximo de vezes antes que o tempo acabe!
+## 💡 Descrição
+O projeto utilizou **HTML**, **CSS** e **JavaScript** para recriar a dinâmica do *Detona Ralph* em um mini game interativo.  
+O jogador precisa acertar o Ralph nas janelas que ele aparece, enquanto o código controla **tempo, som e interações na tela**.  
+O objetivo foi exercitar **lógica de programação**, **eventos do DOM** e **recursos multimídia no navegador**.
 
-O jogo conta com:
-- 🎯 Sistema de pontuação e recorde por sessão;
-- ⏳ Contagem regressiva de tempo (60s);
-- 💥 Efeitos sonoros dinâmicos para acertos e erros;
-- 🕹️ Interface retrô inspirada em fliperamas clássicos;
-- ⚙️ Código estruturado com foco em boas práticas.
+---
 
-O resultado é um mini game leve, responsivo e divertido, criado com foco em **interatividade**, **aprendizado prático** e **organização de código**.
+## 🧠 Conceitos praticados
+▫️ Manipulação do DOM  
+▫️ Controle de tempo com JavaScript  
+▫️ Reatividade de interface com CSS  
+▫️ Interações sonoras no navegador  
+▫️ Estruturação e boas práticas com HTML semântico  
 
 ---
 
 ## 🧰 Ferramentas utilizadas
-| Etapa | Ferramenta | Descrição |
-|-------|-------------|-----------|
-| Estrutura e lógica | JavaScript | Controle de tempo, eventos e interações do jogo |
-| Estilo e layout | HTML e CSS | Organização visual e responsividade |
-| Efeitos sonoros | Audacity / bancos de som livres | Criação e edição dos efeitos do jogo |
-| Versionamento | Git e GitHub | Controle de versões e hospedagem via GitHub Pages |
 
----
-
-## 🚀 Publicação
-O projeto está disponível em:  
-👉 [Jogar agora no GitHub Pages](https://thiago-pereira79.github.io/detona-ralph/)
-
----
-
-## 🧑‍💻 Desenvolvido por
-**Thiago Pereira**  
-Explorando o lado criativo do código — onde lógica e diversão se encontram.
+| Etapa | Ferramenta | Finalidade |
+|:------|:------------|:------------|
+| Edição de código | Visual Studio Code | Organização e desenvolvimento do projeto |
+| Estrutura e estilo | HTML e CSS | Criação da base e estilização do jogo |
+| Lógica e interatividade | JavaScript | Manipulação de elementos e eventos |
+| Versionamento | Git e GitHub | Controle de versão e publicação do projeto |
 
 ---
 
 ## 📜 Licença
-Este projeto está sob a licença [MIT](./LICENSE).  
-Você é livre para usar, modificar e distribuir este código, desde que mantenha o aviso de copyright e a licença original.
 
+Este projeto está sob a licença [MIT](https://opensource.org/licenses/MIT).
+
+---
+
+🧩 Desenvolvido por **Thiago Pereira**  
+📍 Projeto do **Bootcamp DIO - Trilha JavaScript**
