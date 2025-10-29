@@ -1,212 +1,277 @@
-// ===== Estado e seletores =====
-const state = {
-  view:{
-    squares: document.querySelectorAll(".square"),
-    timeLeft: document.querySelector("#time-left"),
-    score: document.querySelector("#score"),
-    livesEl: document.querySelector("#lives"),
-    bestEl: document.querySelector("#best"),
-  },
-  values: {
-    gameVelocity: 700,   // Ralph troca a cada 0,7s
-    hitPosition: null,   // id da casa atual com Ralph
-    result: 0,
-    curretTime: 60,      // 60s por partida
-    lives: 5,            // 5 vidas por partida
-    bestSession: 0,      // recorde da sessão (zera ao recarregar)
-  },
-  flags: {
-    penalizedThisSpawn: false, // evita perder 2 vidas no mesmo spawn
-  },
-  actions:{
-    timerID: null,            // movimenta o inimigo
-    countDownTimerID: null,   // cronômetro principal
-    preCountInterval: null,   // countdown antes de iniciar
-  }
+// ===================== CONFIG =====================
+const CONFIG = {
+  tempoPartidaSeg: 60,
+  vidasIniciais: 5,
+  preStartSegundos: 5,
+
+  // velocidade do "mole" (spawn/troca de posição)
+  spawnBaseMs: 1000,   // começa aqui
+  spawnMinMs: 450,     // mínimo
+  turboPassoMs: 60,    // quanto acelera a cada acerto (se turbo estiver ligado)
 };
 
-// ===== Áudio =====
+// ===================== ELEMENTOS =====================
+const squares = Array.from(document.querySelectorAll(".square"));
+
+const elTime    = document.getElementById("time-left");
+const elScore   = document.getElementById("score");
+const elLives   = document.getElementById("lives");
+const elBest    = document.getElementById("best");
+
+const overlayStart     = document.getElementById("overlay-start");
+const overlayCountdown = document.getElementById("overlay-countdown");
+const overlayGameover  = document.getElementById("overlay-gameover");
+
+const btnIniciar      = document.getElementById("btn-iniciar");
+const btnReiniciar    = document.getElementById("btn-reiniciar");
+const btnCompartilhar = document.getElementById("btn-compartilhar");
+
+const cdNumber = document.getElementById("cd-number");
+const recCapa  = document.getElementById("recorde-capa");
+const recFinal = document.getElementById("recorde-final");
+const pontFinal= document.getElementById("pontuacao-final");
+
+// áudios
 const sfxHit   = document.getElementById("sfx-hit");
 const sfxErro  = document.getElementById("sfx-erro");
-const sfxTempo = document.getElementById("sfx-tempo"); // toca só no game over
+const sfxTempo = document.getElementById("sfx-tempo");
 
-function playHitSound(){  try{ sfxHit.currentTime=0;  sfxHit.volume=0.25;  sfxHit.play(); }catch{} }
-function playErrorSound(){ try{ sfxErro.currentTime=0; sfxErro.volume=0.25; sfxErro.play(); }catch{} }
-function playEndSound(){   try{ sfxTempo.currentTime=0; sfxTempo.volume=0.25; sfxTempo.play(); }catch{} }
+// helpers de overlay
+const show = el => el && el.classList.remove("hidden");
+const hide = el => el && el.classList.add("hidden");
 
-// ===== Overlays =====
-const $overlayStart     = document.getElementById("overlay-start");
-const $overlayGameover  = document.getElementById("overlay-gameover");
-const $overlayCountdown = document.getElementById("overlay-countdown");
+// ===================== ESTADO =====================
+let tempoRestante = CONFIG.tempoPartidaSeg;
+let vidas = CONFIG.vidasIniciais;
+let score = 0;
+let best  = Number(localStorage.getItem("bestDetonaRalph") || 0);
+let gameVelocity = CONFIG.spawnBaseMs;
 
-const $btnIniciar   = document.getElementById("btn-iniciar");
-const $btnReiniciar = document.getElementById("btn-reiniciar");
-const $btnShare     = document.getElementById("btn-compartilhar");
+let gameRunning = false;
+let currentPos = null;
+let foiAcertado = true; // p/ penalidade de "não clicou no último spawn"
 
-const $recCapa   = document.getElementById("recorde-capa");
-const $pontFinal = document.getElementById("pontuacao-final");
-const $recFinal  = document.getElementById("recorde-final");
+let spawnTimer = null;
+let cronometroTimer = null;
+let preStartTimer = null;
 
-const $cdNumber  = document.getElementById("cd-number");
+// ======= Toggle Turbo (injetado só com JS) =======
+const TURBO_KEY = "turboDetonaRalph";
+let turboEnabled = JSON.parse(localStorage.getItem(TURBO_KEY) || "false");
+let chkTurbo = null;
 
-const show = el => el.classList.remove("hidden");
-const hide = el => el.classList.add("hidden");
+function injetaToggleTurbo() {
+  if (!overlayStart) return;
+  const card = overlayStart.querySelector(".card");
+  if (!card || card.querySelector("#chk-turbo")) return;
 
-// ===== HUD =====
-function updateHUD(){
-  state.view.timeLeft.textContent = state.values.curretTime;
-  state.view.score.textContent    = state.values.result;
-  state.view.livesEl.textContent  = `x${state.values.lives}`;
-  state.view.bestEl.textContent   = state.values.bestSession;
-}
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.alignItems = "center";
+  wrap.style.justifyContent = "center";
+  wrap.style.gap = "10px";
+  wrap.style.margin = "12px 0 6px";
+  wrap.style.color = "#fff";
+  wrap.style.opacity = "0.92";
+  wrap.style.fontSize = "12px";
 
-// ===== Lógica do jogo =====
-function randomSquare(){
-  state.view.squares.forEach((sq)=> sq.classList.remove("enemy"));
-  const randomNumber = Math.floor(Math.random()*state.view.squares.length); // 0..8
-  const randomSquare = state.view.squares[randomNumber];
-  randomSquare.classList.add("enemy");
-  state.values.hitPosition = randomSquare.id;
-  state.flags.penalizedThisSpawn = false;
-}
+  chkTurbo = document.createElement("input");
+  chkTurbo.type = "checkbox";
+  chkTurbo.id = "chk-turbo";
+  chkTurbo.checked = turboEnabled;
+  chkTurbo.style.width = "18px";
+  chkTurbo.style.height = "18px";
+  chkTurbo.style.cursor = "pointer";
 
-function moveEnemy(){
-  clearInterval(state.actions.timerID);
-  state.actions.timerID = setInterval(randomSquare, state.values.gameVelocity);
-}
+  const label = document.createElement("label");
+  label.setAttribute("for", "chk-turbo");
+  label.textContent = "Modo Turbo (fica mais rápido a cada acerto)";
 
-function countDown(){
-  state.values.curretTime--;
-  state.view.timeLeft.textContent = state.values.curretTime;
-  if(state.values.curretTime <= 0){
-    endGame();
-  }
-}
-
-function addListenerHitBox() {
-  state.view.squares.forEach((square) => {
-    square.addEventListener("mousedown", () => {
-      if (square.id === state.values.hitPosition){
-        // ACERTOU 🎯
-        state.values.result++;
-        state.view.score.textContent = state.values.result;
-        state.values.hitPosition = null;           // remove alvo atual
-        state.flags.penalizedThisSpawn = false;    // não penalizar ao trocar
-        playHitSound();
-      } else {
-        // ERROU ❌ -> perde 1 vida (apenas uma vez por spawn)
-        if (!state.flags.penalizedThisSpawn) {
-          state.values.lives = Math.max(0, state.values.lives - 1);
-          state.flags.penalizedThisSpawn = true;
-          updateHUD();
-          playErrorSound();
-          if (state.values.lives <= 0) { endGame(); }
-        }
-      }
-    });
+  chkTurbo.addEventListener("change", () => {
+    turboEnabled = chkTurbo.checked;
+    localStorage.setItem(TURBO_KEY, JSON.stringify(turboEnabled));
   });
+
+  wrap.appendChild(chkTurbo);
+  wrap.appendChild(label);
+  // insere acima do botão Iniciar (se preferir, mova a posição)
+  const btn = card.querySelector("#btn-iniciar");
+  card.insertBefore(wrap, btn);
 }
 
-// ===== Preparação/Timers =====
-function unlockAudioOnce(){
-  // desbloqueia áudio no primeiro gesto do usuário (requisito de navegadores)
-  sfxHit?.play().then(()=>sfxHit.pause()).catch(()=>{});
-  sfxErro?.play().then(()=>sfxErro.pause()).catch(()=>{});
-  sfxTempo?.play().then(()=>sfxTempo.pause()).catch(()=>{});
-}
+// ===================== INICIAL =====================
+atualizaHUD();
+elBest.textContent = best;
+if (recCapa) recCapa.textContent = best;
+injetaToggleTurbo();
+show(overlayStart);
 
-function prepareNewRound(){
-  unlockAudioOnce();
-  clearInterval(state.actions.countDownTimerID);
-  clearInterval(state.actions.timerID);
+btnIniciar?.addEventListener("click", iniciarPreStart);
+btnReiniciar?.addEventListener("click", iniciarPreStart);
+btnCompartilhar?.addEventListener("click", compartilhar);
 
-  state.values.curretTime = 60;
-  state.values.result = 0;
-  state.values.lives  = 5;
-  state.values.hitPosition = null;
-  state.flags.penalizedThisSpawn = false;
+squares.forEach(sq => {
+  sq.addEventListener("click", () => {
+    if (!gameRunning) return;
 
-  updateHUD();
-  hide($overlayStart);
-  hide($overlayGameover);
-}
-
-function startTimers(){
-  state.actions.countDownTimerID = setInterval(countDown, 1000);
-  moveEnemy();
-}
-
-// ===== Novo: iniciar com contagem regressiva de 5s com pulso =====
-function triggerPulse(){
-  // truque pra reiniciar a animação CSS
-  $cdNumber.classList.remove('pulse');
-  // força reflow
-  void $cdNumber.offsetWidth;
-  $cdNumber.classList.add('pulse');
-}
-
-function startGameWithCountdown(seconds = 5){
-  prepareNewRound();
-  show($overlayCountdown);
-  $cdNumber.textContent = seconds;
-  triggerPulse();
-
-  clearInterval(state.actions.preCountInterval);
-  let remaining = seconds;
-
-  state.actions.preCountInterval = setInterval(() => {
-    remaining--;
-    if (remaining > 0){
-      $cdNumber.textContent = remaining;
-      triggerPulse();
+    if (sq.classList.contains("enemy")) {
+      foiAcertado = true;
+      score++;
+      tocar(sfxHit);
+      acelerar();            // só acelera se turbo estiver ativo
+      atualizaHUD();
+      sq.classList.remove("enemy");
+      currentPos = null;
     } else {
-      $cdNumber.textContent = "VAI!";
-      triggerPulse();
-      clearInterval(state.actions.preCountInterval);
-      setTimeout(() => {
-        hide($overlayCountdown);
-        startTimers(); // início real
-      }, 600);
+      perderVida(true);      // clique errado
+    }
+  });
+});
+
+// ===================== FLUXO DE JOGO =====================
+function iniciarPreStart() {
+  // lê o valor do toggle (caso o usuário tenha mudado)
+  if (chkTurbo) turboEnabled = chkTurbo.checked;
+
+  hide(overlayStart);
+  hide(overlayGameover);
+  cdNumber.textContent = CONFIG.preStartSegundos.toString();
+  cdNumber.classList.remove("pulse");
+  show(overlayCountdown);
+
+  pararTimers();
+  resetarEstado();
+
+  let cont = CONFIG.preStartSegundos;
+  preStartTimer = setInterval(() => {
+    cdNumber.classList.remove("pulse"); void cdNumber.offsetWidth; cdNumber.classList.add("pulse");
+    cdNumber.textContent = cont.toString();
+    cont--;
+
+    if (cont < 0) {
+      clearInterval(preStartTimer);
+      hide(overlayCountdown);
+      iniciarJogo();
     }
   }, 1000);
 }
 
-// ===== Fluxo de fim =====
-function endGame(){
-  clearInterval(state.actions.countDownTimerID);
-  clearInterval(state.actions.timerID);
+function iniciarJogo() {
+  resetarEstado();
+  gameRunning = true;
 
-  if(state.values.result > state.values.bestSession){
-    state.values.bestSession = state.values.result;
+  spawnTimer = setInterval(spawnTick, gameVelocity);
+  cronometroTimer = setInterval(() => {
+    tempoRestante--;
+    atualizaHUD();
+    if (tempoRestante <= 0) {
+      fimDeJogo();
+    }
+  }, 1000);
+}
+
+function fimDeJogo() {
+  gameRunning = false;
+  pararTimers();
+  limparTabuleiro();
+
+  if (score > best) {
+    best = score;
+    localStorage.setItem("bestDetonaRalph", best.toString());
   }
 
-  $pontFinal.textContent = state.values.result;
-  $recFinal.textContent  = state.values.bestSession;
-  updateHUD();
-  show($overlayGameover);
+  pontFinal && (pontFinal.textContent = String(score));
+  recFinal  && (recFinal.textContent  = String(best));
+  elBest.textContent = best;
 
-  playEndSound(); // som do fim apenas aqui
+  show(overlayGameover);
+  tocar(sfxTempo);
 }
 
-// ===== Share =====
-$btnShare?.addEventListener("click", () => {
-  const url  = location.href;
-  const text = `Joguei o Detona Ralph e fiz ${state.values.result} pontos! Meu recorde nesta sessão: ${state.values.bestSession}.`;
-  if (navigator.share)
+function resetarEstado() {
+  tempoRestante = CONFIG.tempoPartidaSeg;
+  vidas = CONFIG.vidasIniciais;
+  score = 0;
+  gameVelocity = CONFIG.spawnBaseMs;
+  currentPos = null;
+  foiAcertado = true; // evita perder vida no primeiro tick
+  atualizaHUD();
+}
+
+function pararTimers() {
+  if (spawnTimer) clearInterval(spawnTimer);
+  if (cronometroTimer) clearInterval(cronometroTimer);
+  if (preStartTimer) clearInterval(preStartTimer);
+  spawnTimer = cronometroTimer = preStartTimer = null;
+}
+
+function limparTabuleiro() {
+  squares.forEach(s => s.classList.remove("enemy"));
+}
+
+// ===================== MECÂNICA =====================
+function spawnTick() {
+  // penaliza se não acertou o último spawn
+  if (currentPos !== null && !foiAcertado) {
+    perderVida(false);
+    if (!gameRunning) return;
+  }
+
+  const antiga = currentPos;
+  currentPos = escolhePosicao(antiga);
+
+  squares.forEach(s => s.classList.remove("enemy"));
+  const alvo = squares.find(s => s.id === String(currentPos));
+  if (alvo) alvo.classList.add("enemy");
+
+  foiAcertado = false;
+  rearmarSpawnSeNecessario();
+}
+
+function escolhePosicao(antiga) {
+  let pos;
+  do { pos = Math.floor(Math.random() * 9) + 1; } while (pos === antiga);
+  return pos;
+}
+
+function perderVida(tocarErro) {
+  if (!gameRunning) return;
+  vidas = Math.max(0, vidas - 1);
+  if (tocarErro) tocar(sfxErro);
+  atualizaHUD();
+  if (vidas <= 0) fimDeJogo();
+}
+
+function acelerar() {
+  if (!turboEnabled) return; // só acelera se o toggle estiver ativo
+  gameVelocity = Math.max(CONFIG.spawnMinMs, gameVelocity - CONFIG.turboPassoMs);
+}
+
+function rearmarSpawnSeNecessario() {
+  if (!gameRunning) return;
+  clearInterval(spawnTimer);
+  spawnTimer = setInterval(spawnTick, gameVelocity);
+}
+
+function atualizaHUD() {
+  elTime.textContent  = String(tempoRestante);
+  elScore.textContent = String(score);
+  elLives.textContent = "x" + vidas;
+  elBest.textContent  = String(best);
+}
+
+function tocar(audioEl) {
+  try { audioEl.currentTime = 0; audioEl.play(); } catch(_) {}
+}
+
+// ===================== SHARE =====================
+function compartilhar() {
+  const url = "https://thiago-pereira79.github.io/detona-ralph/";
+  const text = `Acertei ${score} pontos no Detona Ralph! Consegue bater?`;
+  if (navigator.share) {
     navigator.share({ title: "Detona Ralph", text, url }).catch(()=>{});
-  else prompt("Copie e compartilhe:", `${text} — ${url}`);
-});
-
-// ===== Inicialização =====
-function initialize(){
-  addListenerHitBox();
-  state.values.bestSession = 0;
-  document.getElementById("recorde-capa").textContent = state.values.bestSession;
-  updateHUD();
-  show($overlayStart); // começa na capa
+  } else {
+    navigator.clipboard?.writeText(url);
+    alert("Link copiado! Cole onde quiser para compartilhar.");
+  }
 }
-
-document.getElementById("btn-iniciar")?.addEventListener("click", () => startGameWithCountdown(5));
-document.getElementById("btn-reiniciar")?.addEventListener("click", () => startGameWithCountdown(5));
-
-initialize();
